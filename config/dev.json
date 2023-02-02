@@ -1,0 +1,16 @@
+{
+  "server": {
+    "port": "3000",
+    "hostname": "0.0.0.0"
+  },
+  "log": {
+    "level": "debug"
+  },
+  "db": {
+    "host": "localhost",
+    "port": 5432,
+    "database": "postgres",
+    "user": "postgres",
+    "password": "postgres"
+  }
+}
