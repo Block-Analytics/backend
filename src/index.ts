@@ -1,13 +1,23 @@
-import * as express from "express";
+import express from "express";
 import { Routes } from "./routes";
 import { Request, Response, NextFunction } from "express";
-import * as cors from "cors";
+import cors from "cors";
+import * as log4js from "log4js";
+import config from "config";
 
 const app = express();
 
 app.use(express.json())
 app.use(cors())
 app.use(express.urlencoded({ extended: true }))
+
+const expresslogger = log4js.getLogger(`backend HTTP`)
+const logger = log4js.getLogger(`server`)
+
+expresslogger.level = config.get("log.level")
+logger.level = config.get("log.level")
+
+app.use(log4js.connectLogger(expresslogger, { level: 'auto' }))
 
 Routes.forEach(route => {
   (app as any)[route.method](route.route, (req: Request, res: Response, next: NextFunction) => {
@@ -20,6 +30,6 @@ Routes.forEach(route => {
   });
 });
 
-app.listen(3000, () => {
-  console.log('Backend service is listening on port 3000');
+app.listen(config.get("server.port"), () => {
+  console.log(`Backend service is listening on port ${config.get("server.port")}`);
 });

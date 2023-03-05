@@ -1,49 +1,28 @@
 import * as log4js from "log4js"
-import { gqlClient } from "../data-source"
+import { surrealClient } from "../data-source"
+import { BlockService } from "./BlockService";
 
 export class TransactionService {
   private log = log4js.getLogger("TransactionService")
+  private blockService = new BlockService()
 
-  async getTransactionsByMonths(from: number, to: number): Promise<{ statusCode: number; message: any; }> {
-    this.log.info(`Getting all transactions for ${from} to ${to}`)
+  async getTransactionsByMonths(chain: string, network: string): Promise<{ statusCode: number; message: any; }> {
+    this.log.info(`Getting transactions by months for the last year`)
     try {
-      var date = new Date();
-      var startOfMonthTimestamp = Math.floor(new Date(date.getFullYear(), date.getMonth(), 1).getTime() / 1000);
-      var endOfMonthTimestamp = Math.floor(new Date(date.getFullYear(), date.getMonth() + 1, 0).getTime() / 1000);
+      const res = (await (await surrealClient()).query(`
+        SELECT mined_at, 
+        string::concat(time::year(mined_at),'-', time::month(mined_at)) as date, 
+        time::year(mined_at) as year, time::month(mined_at) as month, 
+        math::sum(count(->has.out)) as txs 
+        FROM block WHERE chain="chain:${chain}_${network}" AND mined_at > time::now()-1y GROUP BY month;
+      `))[0].result
 
-      let string = ''
-      for (let index = 0; index < 12; index++) {
-        string = string+`
-            month${index.toString()}: 
-            blocks(
-              filter: {timestamp: {between: {min: "${startOfMonthTimestamp}", max: "${endOfMonthTimestamp}"}}}
-              ) {
-              timestamp
-              number
-              txsAggregate {
-                count
-              }
-            }
-          `
-        startOfMonthTimestamp = Math.floor(new Date(date.getFullYear(), date.getMonth() - index, 1).getTime() / 1000);
-        endOfMonthTimestamp = Math.floor(new Date(date.getFullYear(), date.getMonth() - index + 1, 0).getTime() / 1000);     
+      return {
+        statusCode: 200,
+        message: res,
       }
-      console.log(string);
-      
-      const result = await gqlClient.request(
-        `query {
-          queryChain {
-            blockchain
-            id
-            ${string}
-          }
-        }`)
-        return {
-          statusCode: 200,
-          message: result,
-        }
     } catch (error) {
-      this.log.error("Error getting blocks: " + error)
+      this.log.error(error)
       return {
         statusCode: 500,
         message: error,
@@ -51,36 +30,53 @@ export class TransactionService {
     }
   }
 
-  async getTransactions(from: number, to: number): Promise<{ statusCode: number; message: any; }> {
-    this.log.info(`Getting all transactions for ${from} to ${to}`)
+  async getTotalTransactions(chain: string, network: string): Promise<{ statusCode: number; message: any; }> {
+    this.log.info(`Getting total transactions`)
     try {
-      const result = await gqlClient.request(
-        `query {
-          queryChain() {
-            txsAggregate {
-              count
-            }
-            id
-            latestTx:blocks(first: 1, order: {desc: number}) {
-              txs {
-                from {
-                  id
-                }
-                to {
-                  id
-                }
-                hash
-              }
-            }
-          }
-        }`
-      )
+      const res = (await (await surrealClient()).query(`SELECT math::sum(count(->has.out.*)) as txs WHERE chain="chain:${chain}_${network}" FROM block GROUP BY txs;`))[0].result[0].txs
+
       return {
         statusCode: 200,
-        message: result,
+        message: res,
       }
     } catch (error) {
-      this.log.error("Error getting blocks: " + error)
+      this.log.error(error)
+      return {
+        statusCode: 500,
+        message: error,
+      }
+    }
+  }
+
+  async getTransactionsFromLatestBlock(chain: string, network: string): Promise<{ statusCode: number; message: any; }> {
+    this.log.info(`Getting txs from latest block`)
+    try {
+      const latestBlock = await this.blockService.getLatestBlock(chain, network)
+      const res = (await (await surrealClient()).query(`SELECT ->has.out.* as txs FROM block WHERE id="block:${latestBlock.message.id}" AND chain="chain:${chain}_${network}";`))[0].result[0].txs
+
+      return {
+        statusCode: 200,
+        message: res,
+      }
+    } catch (error) {
+      this.log.error(error)
+      return {
+        statusCode: 500,
+        message: error,
+      }
+    }
+  }
+
+  async getTransactionsFromBlock(chain: string, network: string, block: string): Promise<{ statusCode: number; message: any; }> {
+    this.log.info(`Getting tx from block ${block}, from ${chain}:${network}`)
+    try {
+      const res = (await (await surrealClient()).query(`SELECT ->has.out.* as txs FROM block WHERE id="block:${block}" AND chain="chain:${chain}_${network}";`))[0].result[0].txs
+      return {
+        statusCode: 200,
+        message: res,
+      }
+    } catch (error) {
+      this.log.error(error)
       return {
         statusCode: 500,
         message: error,

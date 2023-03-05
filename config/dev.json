@@ -6,11 +6,12 @@
   "log": {
     "level": "debug"
   },
-  "db": {
-    "host": "localhost",
-    "port": 5432,
-    "database": "postgres",
-    "user": "postgres",
-    "password": "postgres"
+  "surrealDb": {
+    "hostname": "localhost",
+    "port": 8000,
+    "ns": "analytics",
+    "db": "analytics",
+    "user": "analytics",
+    "password": "analytics"
   }
 }
