@@ -19,5 +19,11 @@ export const Routes = [
     route: "/:chain/:network/transactions/block/:block",
     controller: TransactionController,
     action: "getTransactionsFromBlock",
+  },
+  {
+    method: "get",
+    route: "/:chain/:network/blocks/:limit?",
+    controller: BlockController,
+    action: "getLatestBlocks",
   }
 ];

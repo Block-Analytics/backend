@@ -13,10 +13,18 @@ export class BlockController {
     response.status(200).send("Pong")
   }
 
-  async getLatestBlocks(request: Request, response: Response): Promise<void> {
+  async getLatestBlock(request: Request, response: Response): Promise<void> {
     const chain = request.params.chain
     const network = request.params.network
     const result = await this.queryService.getLatestBlock(chain, network)
+    response.status(result.statusCode).send(result.message)
+  }
+
+  async getLatestBlocks(request: Request, response: Response): Promise<void> {
+    const limit = request.params.limit ? parseInt(request.params.limit) : 100
+    const chain = request.params.chain
+    const network = request.params.network
+    const result = await this.queryService.getLatestBlocks(chain, network, limit)
     response.status(result.statusCode).send(result.message)
   }
 }
