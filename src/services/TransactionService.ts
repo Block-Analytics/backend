@@ -33,11 +33,11 @@ export class TransactionService {
   async getTotalTransactions(chain: string, network: string): Promise<{ statusCode: number; message: any; }> {
     this.log.info(`Getting total transactions`)
     try {
-      const res = (await (await surrealClient()).query(`SELECT math::sum(count(->has.out.*)) as txs WHERE chain="chain:${chain}_${network}" FROM block GROUP BY txs;`))[0].result[0].txs
+      const res = (await (await surrealClient()).query(`SELECT math::sum(count(->has.out.*)) as txs FROM block WHERE chain="chain:${chain}_${network}" GROUP BY txs;`))[0].result[0].txs
 
       return {
         statusCode: 200,
-        message: res,
+        message: res.toString(),
       }
     } catch (error) {
       this.log.error(error)

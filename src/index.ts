@@ -31,5 +31,5 @@ Routes.forEach(route => {
 });
 
 app.listen(config.get("server.port"), () => {
-  console.log(`Backend service is listening on port ${config.get("server.port")}`);
+  logger.info(`Backend service is listening on port ${config.get("server.port")}`);
 });
